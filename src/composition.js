@@ -181,8 +181,10 @@ async function readProjectionEvidence(endpoint, skillName) {
     }
     if (manifest?.schema !== "hix.projection/v1") continue;
     if (manifest?.target?.participant !== endpoint.participant) continue;
-    const expectedSkill = `.agents/skills/${skillName}/SKILL.md`;
-    if (endpoint.participant === "codex" && !(manifest.files ?? []).includes(expectedSkill)) continue;
+    const expectedSkill = endpoint.participant === "claude"
+      ? `.claude/skills/${skillName}/SKILL.md`
+      : `.agents/skills/${skillName}/SKILL.md`;
+    if (!(manifest.files ?? []).includes(expectedSkill)) continue;
     return { root, manifest, hash: sha256(content) };
   }
   return undefined;
