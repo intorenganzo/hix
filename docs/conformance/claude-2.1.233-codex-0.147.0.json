@@ -1,0 +1,28 @@
+{
+  "schema": "hix.live-conformance/v1",
+  "observedAt": "2026-08-15T20:12:31.613Z",
+  "versions": {
+    "claude": "2.1.233",
+    "codex": "0.147.0"
+  },
+  "pairing": "claude-2.1.233-to-codex-0.147.0",
+  "command": "npm run conformance:live",
+  "checks": [
+    "installed-exact-versions",
+    "claude-composed-capability-observed",
+    "claude-to-codex-materialization",
+    "codex-projection-composition-observed",
+    "manifest-round-trip-payloads",
+    "read-only-runtime-envelope-emitted",
+    "codex-to-claude-round-trip"
+  ],
+  "compositionHash": "a4fd9e6b5888e7d70314d052412136dc19254710092372930be1013a3fd5094b",
+  "manifestHashes": {
+    "codex": "e76f889ed045c48811757a492678a47f651cafab52f32edbaced3c3fd9ec9082",
+    "claude": "456f05931a72205dbeb7370340c14f82b8c49feacd0930f70218ef1b83c8f459"
+  },
+  "claims": {
+    "crossHarnessEquivalence": false,
+    "runtimeExecutionTested": false
+  }
+}

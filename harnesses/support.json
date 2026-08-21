@@ -1,0 +1,81 @@
+{
+  "schema": "hix.harness-support/v1",
+  "hixVersion": "0.1.0",
+  "participants": {
+    "claude": {
+      "product": "Claude Code",
+      "knownVersion": "2.1.233",
+      "knownVersionSource": "https://github.com/anthropics/claude-code/releases/tag/v2.1.233",
+      "testedVersions": [
+        {
+          "version": "2.1.229",
+          "testedAt": "2026-08-12",
+          "observedAt": "2026-08-13T01:58:13.933Z",
+          "evidence": [
+            "docs/conformance/claude-2.1.229-codex-0.147.0.json"
+          ]
+        },
+        {
+          "version": "2.1.233",
+          "testedAt": "2026-08-15",
+          "observedAt": "2026-08-15T20:12:31.613Z",
+          "evidence": [
+            "docs/conformance/claude-2.1.233-codex-0.147.0.json"
+          ]
+        }
+      ]
+    },
+    "codex": {
+      "product": "Codex CLI",
+      "knownVersion": "0.147.0",
+      "knownVersionSource": "https://github.com/openai/codex/releases/tag/rust-v0.147.0",
+      "testedVersions": [
+        {
+          "version": "0.147.0",
+          "testedAt": "2026-08-12",
+          "observedAt": "2026-08-13T01:58:13.933Z",
+          "evidence": [
+            "docs/conformance/claude-2.1.229-codex-0.147.0.json",
+            "docs/conformance/claude-2.1.233-codex-0.147.0.json"
+          ]
+        }
+      ]
+    }
+  },
+  "testedPairings": [
+    {
+      "id": "claude-2.1.229-to-codex-0.147.0",
+      "source": {
+        "participant": "claude",
+        "version": "2.1.229"
+      },
+      "target": {
+        "participant": "codex",
+        "version": "0.147.0"
+      },
+      "testedAt": "2026-08-12",
+      "observedAt": "2026-08-13T01:58:13.933Z",
+      "scope": "structural observation, bidirectional materialization, and manifest-backed instruction round trip",
+      "evidence": [
+        "docs/conformance/claude-2.1.229-codex-0.147.0.json"
+      ]
+    },
+    {
+      "id": "claude-2.1.233-to-codex-0.147.0",
+      "source": {
+        "participant": "claude",
+        "version": "2.1.233"
+      },
+      "target": {
+        "participant": "codex",
+        "version": "0.147.0"
+      },
+      "testedAt": "2026-08-15",
+      "observedAt": "2026-08-15T20:12:31.613Z",
+      "scope": "structural observation, bidirectional materialization, and manifest-backed instruction round trip",
+      "evidence": [
+        "docs/conformance/claude-2.1.233-codex-0.147.0.json"
+      ]
+    }
+  ]
+}

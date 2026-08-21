@@ -1,0 +1,25 @@
+{
+  "name": "hix",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Explicit observation and materialization of composed AI capabilities across coding harnesses.",
+  "type": "module",
+  "bin": {
+    "hix": "./src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "conformance:live": "node scripts/run-live-conformance.js",
+    "check:harnesses": "node scripts/validate-harness-support.js",
+    "check:drift": "node src/cli.js probe --check",
+    "check": "node --check src/*.js && node --check scripts/*.js && node --check tests/*.js && node scripts/validate-harness-support.js && node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "diff": "^9.0.0",
+    "smol-toml": "^1.8.0",
+    "yaml": "^2.9.0"
+  }
+}
