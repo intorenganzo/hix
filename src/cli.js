@@ -223,7 +223,8 @@ function printSupport(result) {
     console.log(`HIX ${result.matrix.hixVersion}`);
     for (const [name, support] of Object.entries(result.matrix.participants ?? {})) {
       const tested = (support.testedVersions ?? []).map((item) => item.version).join(", ") || "none";
-      console.log(`  ${name.padEnd(8)} known ${support.knownVersion} · tested ${tested}`);
+      const reviewed = (support.reviewedRanges ?? []).map((range) => `${range.from}-${range.to}`).join(", ");
+      console.log(`  ${name.padEnd(8)} known ${support.knownVersion} · tested ${tested}${reviewed ? ` · reviewed ${reviewed}` : ""}`);
     }
     if ((result.matrix.testedPairings ?? []).length) console.log(`  tested pairings: ${result.matrix.testedPairings.length}`);
     return;
@@ -234,14 +235,18 @@ function printSupport(result) {
     console.log(`  known version:  ${result.support.knownVersion}`);
     const tested = result.support.testedVersions ?? [];
     console.log(`  tested versions: ${tested.length ? tested.map((item) => item.version).join(", ") : "none"}`);
+    const ranges = result.support.reviewedRanges ?? [];
+    if (ranges.length) console.log(`  reviewed ranges: ${ranges.map((range) => `${range.from}-${range.to}`).join(", ")}`);
     return;
   }
 
   console.log(`${result.participant} ${result.version}`);
   console.log(`  known:  ${result.known ? "yes" : "no"}`);
   console.log(`  tested: ${result.tested ? "yes" : "no"}`);
+  if (result.reviewed) console.log(`  reviewed: yes (${result.reviewedRange.from}-${result.reviewedRange.to}, ${result.reviewedRange.reviewedAt})`);
   if (result.observedAt) console.log(`  observed: ${result.observedAt}`);
-  if (!result.tested && result.known) console.log("  note: HIX knows this exact version but has no recorded conformance test for it.");
+  if (!result.tested && result.reviewed) console.log("  note: inside a reviewed range — HIX-relevant surfaces were reviewed as unchanged, but this exact version has no conformance test.");
+  else if (!result.tested && result.known) console.log("  note: HIX knows this exact version but has no recorded conformance test for it.");
   if (!result.known) console.log(`  latest version recorded by this HIX release: ${result.knownVersion}`);
   for (const item of result.evidence ?? []) console.log(`  evidence: ${item}`);
 }
@@ -519,7 +524,7 @@ function strictExit(parsed, failed) {
 }
 
 function supportFailedCheck(result) {
-  if (result.version) return !result.tested;
+  if (result.version) return !(result.tested || result.reviewed);
   if (result.participant) return !(result.support.testedVersions ?? []).length;
   return Object.values(result.matrix.participants ?? {}).some((item) => !(item.testedVersions ?? []).length) ||
     !(result.matrix.testedPairings ?? []).length;

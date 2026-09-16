@@ -7,17 +7,15 @@ import path from "node:path";
 import { inspectCompositions } from "../src/core.js";
 import { applyMaterialization, planMaterialization } from "../src/materialize.js";
 
-const EXPECTED = {
-  claude: "2.1.233",
-  codex: "0.147.0"
-};
-
+// The probe records the exact installed versions it observed; it no longer pins
+// them in source. Deliberateness lives where it belongs: adopting this report
+// into harnesses/support.json remains an explicit human decision, and the
+// validator refuses tested claims whose evidence names different versions.
 const observedAt = new Date().toISOString();
 const versions = {
   claude: commandVersion("claude", ["--version"], /([0-9]+\.[0-9]+\.[0-9]+)/),
   codex: commandVersion("codex", ["--version"], /([0-9]+\.[0-9]+\.[0-9]+)/)
 };
-assert.deepEqual(versions, EXPECTED, "Installed harness versions differ from this conformance probe's exact-version contract.");
 
 const work = await fs.mkdtemp(path.join(os.tmpdir(), "hix-live-conformance-"));
 try {
@@ -75,7 +73,7 @@ try {
     schema: "hix.live-conformance/v1",
     observedAt,
     versions,
-    pairing: "claude-2.1.233-to-codex-0.147.0",
+    pairing: `claude-${versions.claude}-to-codex-${versions.codex}`,
     checks: [
       "installed-exact-versions",
       "claude-composed-capability-observed",

@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { findReviewedRange } from "./support.js";
 
 const SCHEMA = "hix.capability-probe/v1";
 
@@ -160,7 +161,8 @@ export function compareProbeToSupport(probe, matrix) {
     return findings;
   }
 
-  if (support.knownVersion !== probe.version) {
+  const reviewedRange = findReviewedRange(support, probe.version);
+  if (support.knownVersion !== probe.version && !reviewedRange) {
     findings.push({
       id: "probe-known-version-drift",
       participant: probe.participant,
@@ -171,12 +173,21 @@ export function compareProbeToSupport(probe, matrix) {
 
   const tested = (support.testedVersions ?? []).some((item) => item.version === probe.version);
   if (!tested) {
-    findings.push({
-      id: "probe-installed-version-untested",
-      participant: probe.participant,
-      severity: "attention",
-      message: `Installed ${probe.participant} ${probe.version} has no recorded conformance evidence.`
-    });
+    if (reviewedRange) {
+      findings.push({
+        id: "probe-installed-version-reviewed-untested",
+        participant: probe.participant,
+        severity: "note",
+        message: `Installed ${probe.participant} ${probe.version} is inside reviewed range ${reviewedRange.from}-${reviewedRange.to} (no HIX-relevant surface changes recorded) but has no conformance evidence of its own.`
+      });
+    } else {
+      findings.push({
+        id: "probe-installed-version-untested",
+        participant: probe.participant,
+        severity: "attention",
+        message: `Installed ${probe.participant} ${probe.version} has no recorded conformance evidence.`
+      });
+    }
   }
 
   for (const marker of probe.markers) {

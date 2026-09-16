@@ -28,6 +28,19 @@ for (const [name, participant] of Object.entries(participants)) {
     await validateEvidence(test.evidence, `${name}@${test.version}`);
     if (test.releaseTag && !test.releaseTag.includes(test.version)) errors.push(`${name}@${test.version}: releaseTag must include the tested participant version`);
   }
+
+  if (participant.reviewedRanges !== undefined && !Array.isArray(participant.reviewedRanges)) {
+    errors.push(`${name}: reviewedRanges must be an array when present`);
+  }
+  for (const range of Array.isArray(participant.reviewedRanges) ? participant.reviewedRanges : []) {
+    const label = `${name}@${range.from ?? "?"}-${range.to ?? "?"}`;
+    if (!range.from || !range.to) errors.push(`${label}: reviewed range requires from and to`);
+    if (range.from && range.to && compareVersions(range.from, range.to) > 0) errors.push(`${label}: from must not exceed to`);
+    if (range.from && !seen.has(range.from)) errors.push(`${label}: range lower endpoint must be a tested version — a reviewed range is anchored in conformance evidence`);
+    if (!range.reviewedAt || !/^\d{4}-\d{2}-\d{2}$/.test(range.reviewedAt)) errors.push(`${label}: reviewedAt must be YYYY-MM-DD`);
+    if (!Array.isArray(range.evidence) || !range.evidence.length) errors.push(`${label}: evidence must contain at least one recorded delta review`);
+    await validateEvidence(range.evidence, label);
+  }
 }
 
 if (!Array.isArray(support.testedPairings)) errors.push("testedPairings must be an array");
@@ -80,6 +93,17 @@ function isTimestamp(value) {
 
 function isTestedVersion(ref) {
   return (participants[ref.participant]?.testedVersions ?? []).some((item) => item.version === ref.version);
+}
+
+function compareVersions(a, b) {
+  const left = String(a).split(".").map(Number);
+  const right = String(b).split(".").map(Number);
+  for (let i = 0; i < Math.max(left.length, right.length); i += 1) {
+    const l = left[i] ?? 0;
+    const r = right[i] ?? 0;
+    if (l !== r) return l < r ? -1 : 1;
+  }
+  return 0;
 }
 
 async function validateEvidence(values, subject) {

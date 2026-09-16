@@ -4,8 +4,18 @@
   "participants": {
     "claude": {
       "product": "Claude Code",
-      "knownVersion": "2.1.233",
-      "knownVersionSource": "https://github.com/anthropics/claude-code/releases/tag/v2.1.233",
+      "knownVersion": "2.1.237",
+      "knownVersionSource": "https://github.com/anthropics/claude-code/releases/tag/v2.1.237",
+      "reviewedRanges": [
+        {
+          "from": "2.1.233",
+          "to": "2.1.237",
+          "reviewedAt": "2026-09-16",
+          "evidence": [
+            "docs/reviews/claude-2.1.233-to-2.1.237.md"
+          ]
+        }
+      ],
       "testedVersions": [
         {
           "version": "2.1.229",
@@ -22,13 +32,21 @@
           "evidence": [
             "docs/conformance/claude-2.1.233-codex-0.147.0.json"
           ]
+        },
+        {
+          "version": "2.1.237",
+          "testedAt": "2026-09-16",
+          "observedAt": "2026-09-16T03:07:07.072Z",
+          "evidence": [
+            "docs/conformance/claude-2.1.237-codex-0.154.0.json"
+          ]
         }
       ]
     },
     "codex": {
       "product": "Codex CLI",
-      "knownVersion": "0.147.0",
-      "knownVersionSource": "https://github.com/openai/codex/releases/tag/rust-v0.147.0",
+      "knownVersion": "0.154.0",
+      "knownVersionSource": "https://github.com/openai/codex/releases/tag/rust-v0.154.0",
       "testedVersions": [
         {
           "version": "0.147.0",
@@ -37,6 +55,15 @@
           "evidence": [
             "docs/conformance/claude-2.1.229-codex-0.147.0.json",
             "docs/conformance/claude-2.1.233-codex-0.147.0.json"
+          ]
+        },
+        {
+          "version": "0.154.0",
+          "testedAt": "2026-09-16",
+          "observedAt": "2026-09-16T03:07:07.072Z",
+          "evidence": [
+            "docs/conformance/claude-2.1.237-codex-0.154.0.json",
+            "docs/reviews/codex-0.147.0-to-0.154.0.md"
           ]
         }
       ]
@@ -75,6 +102,23 @@
       "scope": "structural observation, bidirectional materialization, and manifest-backed instruction round trip",
       "evidence": [
         "docs/conformance/claude-2.1.233-codex-0.147.0.json"
+      ]
+    },
+    {
+      "id": "claude-2.1.237-to-codex-0.154.0",
+      "source": {
+        "participant": "claude",
+        "version": "2.1.237"
+      },
+      "target": {
+        "participant": "codex",
+        "version": "0.154.0"
+      },
+      "testedAt": "2026-09-16",
+      "observedAt": "2026-09-16T03:07:07.072Z",
+      "scope": "structural observation, bidirectional materialization, and manifest-backed instruction round trip",
+      "evidence": [
+        "docs/conformance/claude-2.1.237-codex-0.154.0.json"
       ]
     }
   ]

@@ -133,6 +133,29 @@ test("probe reports no drift when the support matrix already records the install
   }
 });
 
+test("probe treats a version inside a reviewed range as note-level, not attention drift", async () => {
+  const home = await tempHome();
+  try {
+    const probe = await probeHarness("claude", { home, captureSurface: claudeCapture });
+    const findings = compareProbeToSupport(probe, {
+      participants: {
+        claude: {
+          knownVersion: "2.1.229",
+          testedVersions: [{ version: "2.1.229" }],
+          reviewedRanges: [{ from: "2.1.229", to: "2.1.240" }]
+        }
+      }
+    });
+
+    assert.deepEqual(findings.filter((finding) => finding.severity === "attention"), []);
+    const reviewed = findings.find((finding) => finding.id === "probe-installed-version-reviewed-untested");
+    assert.ok(reviewed, "reviewed-but-untested is still surfaced, at note severity");
+    assert.match(reviewed.message, /reviewed range 2\.1\.229-2\.1\.240/);
+  } finally {
+    await fs.rm(home, { recursive: true, force: true });
+  }
+});
+
 test("probe reports an installed participant the support matrix does not record", async () => {
   const home = await tempHome();
   try {

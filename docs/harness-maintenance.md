@@ -76,7 +76,7 @@ claude --version
 codex --version
 ```
 
-Do not publish an open-ended range unless that range has an explicit test policy. Prefer exact versions.
+Do not publish an open-ended range. Exact versions carry the evidence; closed reviewed ranges (below) are the only range claim HIX makes, and every range names both endpoints.
 
 ### 2. Review changes relevant to HIX
 
@@ -116,7 +116,7 @@ The minimum useful checks are:
 
 Record the commands, fixture hashes, outputs, or a short conformance report as evidence. Do not use a bare statement such as "tested manually" as the only evidence.
 
-The repository probe performs the structural/materialization portion against its pinned exact versions:
+The repository probe performs the structural/materialization portion against the exact installed versions, and records what it observed in its report:
 
 ```sh
 npm run conformance:live
@@ -160,6 +160,32 @@ Multiple Git tags may point at the same release commit.
 
 Do not create a participant-version tag merely because that version is listed as `knownVersion`. Tags that include a participant version should mean HIX was actually tested against that exact version.
 
+## Reviewed ranges
+
+A `reviewedRanges` entry is the deliberate range policy this document previously deferred. It is a claim distinct from — and weaker than — a tested version:
+
+```json
+"reviewedRanges": [
+  {
+    "from": "2.1.233",
+    "to": "2.1.237",
+    "reviewedAt": "2026-09-16",
+    "evidence": ["docs/reviews/claude-2.1.233-to-2.1.237.md"]
+  }
+]
+```
+
+Semantics, enforced by `npm run check:harnesses`:
+
+1. Both endpoints are explicit exact versions; open-ended ranges are not representable.
+2. `from` must appear in `testedVersions` — a range is anchored in conformance evidence at its lower endpoint.
+3. `evidence` must contain at least one recorded upstream delta review covering every version in the interior, concluding that no HIX-relevant surface changed. Reading release notes **is** sufficient for a range claim (unlike a tested claim) because the claim itself is only "surfaces were reviewed as unchanged".
+4. A version inside a range answers `hix support` as `reviewed` — never `tested` — and passes `--check`. `hix probe` reports it at note severity rather than attention.
+5. An upstream change to any HIX-relevant surface ends the range at the last reviewed-unchanged version. The next range starts at the next tested version, after HIX code/fixtures are updated and live conformance runs.
+6. `knownVersion` may advance to the range's `to` after the review, per the rules above.
+
+The three claim tiers, strongest first: **tested** (exact version, conformance evidence) → **reviewed** (inside a closed range with recorded delta-review evidence) → **known** (version examined as a maintenance input, no compatibility claim). A range never substitutes for the live conformance run when publishing a release or recording a pairing.
+
 ## When a participant updates
 
 There is no requirement to detect the update automatically.
@@ -168,12 +194,13 @@ When someone wants to use HIX with a new Claude Code or Codex version:
 
 1. check `harnesses/support.json`;
 2. if the exact version is already in `testedVersions`, use the recorded evidence/tag as the compatibility record;
-3. if it is only `knownVersion`, HIX has reviewed the version but has not claimed conformance;
-4. if it is absent, review the upstream delta relevant to HIX;
-5. run the live conformance checks;
-6. update the matrix and tag the HIX release/commit if the tests pass.
+3. if it falls inside a `reviewedRanges` entry, HIX has reviewed the relevant surfaces as unchanged across that range; conformance for that exact version remains untested;
+4. if it is only `knownVersion`, HIX has reviewed the version but has not claimed conformance;
+5. if it is absent, review the upstream delta relevant to HIX — a clean review may extend or add a reviewed range; a surface change requires code/fixture updates first;
+6. run the live conformance checks when a tested claim or release is needed;
+7. update the matrix and tag the HIX release/commit if the tests pass.
 
-HIX should not infer support for a future Claude Code version because `2.1.229` passed, or for `0.148.0` because `0.147.0` passed. A later policy can deliberately add version ranges if there is evidence to justify them.
+HIX still does not infer support from version arithmetic: `0.148.0` is not supported because `0.147.0` passed. The reviewed-range policy above is the only sanctioned generalization, and it requires recorded review evidence for the exact interval it names.
 
 ## Validation rules
 
