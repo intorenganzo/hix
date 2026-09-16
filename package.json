@@ -12,7 +12,8 @@
     "conformance:live": "node scripts/run-live-conformance.js",
     "check:harnesses": "node scripts/validate-harness-support.js",
     "check:drift": "node src/cli.js probe --check",
-    "check": "node --check src/*.js && node --check scripts/*.js && node --check tests/*.js && node scripts/validate-harness-support.js && node --test"
+    "check:schemas": "node scripts/validate-schemas.js",
+    "check": "node --check src/*.js && node --check scripts/*.js && node --check tests/*.js && node scripts/validate-harness-support.js && node --test && node scripts/validate-schemas.js"
   },
   "engines": {
     "node": ">=20"

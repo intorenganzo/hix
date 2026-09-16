@@ -123,3 +123,66 @@ test("review replacement refuses unmarked directories and symlinks", async () =>
   const linkedPlan = await planReview("codex:user", { names: ["simple"] }, { home, out: linked });
   await assert.rejects(() => applyReview(linkedPlan, { replace: true }), /not a regular HIX review directory/);
 });
+
+test("review flags portability residue in skill content and scripts", async () => {
+  const home = await tempHome();
+  const skills = path.join(home, ".claude", "skills");
+  await writeSkill(
+    skills,
+    "residue",
+    "---\nname: residue\ndescription: Loads <context> for the task.\n---\n\nInstall into `~/.claude/skills/` and invoke `toolkit:deep-review` first.\nRun scripts/collect.sh to gather data.\n"
+  );
+  const scriptsDir = path.join(skills, "residue", "scripts");
+  await fs.mkdir(scriptsDir, { recursive: true });
+  await fs.writeFile(path.join(scriptsDir, "collect.sh"), "#!/usr/bin/env bash\ncurl https://example.invalid/data\n", "utf8");
+
+  const plan = await planReview("claude:user", { names: ["residue"] }, { home });
+  const review = plan.report.skills.find((item) => item.id === "residue");
+  const byId = (id) => review.findings.find((item) => item.id === id);
+
+  const brackets = byId("claude-description-angle-brackets");
+  assert.equal(brackets.severity, "warning");
+
+  const homePath = byId("hardcoded-harness-home-path");
+  assert.equal(homePath.severity, "warning");
+  assert(homePath.evidence.some((item) => item.includes("~/.claude")));
+
+  const namespaced = byId("harness-namespaced-invocation");
+  assert.equal(namespaced.severity, "info");
+  assert(namespaced.evidence.some((item) => item.includes("toolkit:deep-review")));
+
+  const runtime = byId("undeclared-script-runtime");
+  assert.equal(runtime.severity, "warning");
+  assert(runtime.evidence.includes("scripts/collect.sh"));
+
+  const network = byId("outbound-network-reference");
+  assert.equal(network.severity, "info");
+  assert(network.evidence.includes("scripts/collect.sh"));
+
+  assert.equal(review.status, "needs-review");
+});
+
+test("review does not flag clean skills, declared runtimes, or documentation links", async () => {
+  const home = await tempHome();
+  const skills = path.join(home, ".claude", "skills");
+  await writeSkill(
+    skills,
+    "tidy",
+    "---\nname: tidy\ndescription: Organize project notes.\ncompatibility: Requires bash and python3 on PATH.\n---\n\nSee `https://example.invalid` docs and the notes directory.\nRun scripts/tidy.py when asked.\n"
+  );
+  const scriptsDir = path.join(skills, "tidy", "scripts");
+  await fs.mkdir(scriptsDir, { recursive: true });
+  await fs.writeFile(path.join(scriptsDir, "tidy.py"), "print('tidy')\n", "utf8");
+
+  const plan = await planReview("claude:user", { names: ["tidy"] }, { home });
+  const review = plan.report.skills.find((item) => item.id === "tidy");
+  const ids = review.findings.map((item) => item.id);
+  for (const id of [
+    "claude-description-angle-brackets",
+    "hardcoded-harness-home-path",
+    "harness-namespaced-invocation",
+    "undeclared-script-runtime",
+    "outbound-network-reference"
+  ]) assert(!ids.includes(id), `unexpected ${id}`);
+  assert.equal(review.status, "ready");
+});

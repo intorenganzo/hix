@@ -3,6 +3,7 @@ import path from "node:path";
 import { assertSkillSafeForWrite, discoverSkills } from "./artifacts.js";
 import { observeComposedCapability } from "./composition.js";
 import { resolveEndpoint } from "./endpoints.js";
+import { CLAUDE_EFFORTS } from "./execution-vocabulary.js";
 import { markdownBody, parseToml } from "./formats.js";
 
 const PORTABLE_FRONTMATTER_KEYS = new Set([
@@ -12,7 +13,6 @@ const PORTABLE_FRONTMATTER_KEYS = new Set([
   "compatibility",
   "metadata"
 ]);
-const CLAUDE_EFFORTS = new Set(["low", "medium", "high", "xhigh", "max"]);
 const CLAUDE_READ_ONLY_TOOLS = ["Read", "Glob", "Grep"];
 const SOURCE_DIMENSIONS_WITHOUT_SAFE_CLAUDE_REALIZATION = new Map([
   ["tool-dependencies", "Codex tool dependency metadata has no equivalent Claude skill-local dependency manifest."],

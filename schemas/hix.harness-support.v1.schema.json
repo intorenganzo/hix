@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hix.invalid/schemas/hix.harness-support.v1.schema.json",
+  "title": "hix.harness-support/v1",
+  "description": "Checked-in harness support matrix at harnesses/support.json. It records exact upstream versions and the evidence backing each claim. This schema covers structure only; scripts/validate-harness-support.js additionally enforces the cross-field invariants (evidence paths exist, pairing versions appear in testedVersions, a reviewed range's lower endpoint is a tested version, hixVersion matches the package version).",
+  "type": "object",
+  "required": ["schema", "hixVersion", "participants", "testedPairings"],
+  "properties": {
+    "schema": { "const": "hix.harness-support/v1" },
+    "hixVersion": { "type": "string" },
+    "participants": {
+      "type": "object",
+      "description": "Keyed by participant name, matching the participant segment of an endpoint spec.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["product", "knownVersion", "knownVersionSource", "testedVersions"],
+        "properties": {
+          "product": { "type": "string" },
+          "knownVersion": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$" },
+          "knownVersionSource": { "type": "string", "pattern": "^https?://" },
+          "testedVersions": {
+            "type": "array",
+            "description": "Versions hix has actually exercised, each anchored in a conformance artifact.",
+            "items": {
+              "type": "object",
+              "required": ["version", "testedAt", "observedAt", "evidence"],
+              "properties": {
+                "version": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$" },
+                "testedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+                "observedAt": {
+                  "type": "string",
+                  "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+                },
+                "evidence": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+                "releaseTag": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "reviewedRanges": {
+            "type": "array",
+            "description": "Version intervals claimed by an upstream delta review rather than by conformance testing. Present only for participants that carry such a claim.",
+            "items": {
+              "type": "object",
+              "required": ["from", "to", "reviewedAt", "evidence"],
+              "properties": {
+                "from": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$" },
+                "to": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$" },
+                "reviewedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+                "evidence": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "testedPairings": {
+      "type": "array",
+      "description": "Source/target participant pairs that were exercised together. Materialization reads these to decide whether a runtime requirement is conformance-backed or unverified.",
+      "items": {
+        "type": "object",
+        "required": ["id", "source", "target", "testedAt", "observedAt", "evidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "source": {
+            "type": "object",
+            "required": ["participant", "version"],
+            "properties": {
+              "participant": { "type": "string" },
+              "version": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$" }
+            },
+            "additionalProperties": false
+          },
+          "target": {
+            "type": "object",
+            "required": ["participant", "version"],
+            "properties": {
+              "participant": { "type": "string" },
+              "version": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$" }
+            },
+            "additionalProperties": false
+          },
+          "testedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+          "observedAt": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+          },
+          "scope": { "type": "string" },
+          "evidence": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+          "releaseTag": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

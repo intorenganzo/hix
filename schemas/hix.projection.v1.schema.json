@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hix.invalid/schemas/hix.projection.v1.schema.json",
+  "title": "hix.projection/v1",
+  "description": "Manifest written as hix-projection.json at the root of a materialization output. One schema covers both materialization targets; target-specific fields are documented per property. The manifest is also read back as composition evidence, so it is a stable wire format rather than a report.",
+  "type": "object",
+  "required": ["schema", "source", "target", "choices", "resolutions", "runtimeRequirements", "roundTrip", "files", "claims"],
+  "properties": {
+    "schema": { "const": "hix.projection/v1" },
+    "source": {
+      "type": "object",
+      "description": "Portable identity of the observed source composition. Contains no absolute or machine-specific paths.",
+      "required": ["endpoint", "participant", "skill", "hash", "compositionHash"],
+      "properties": {
+        "endpoint": { "type": "string" },
+        "participant": { "type": "string" },
+        "capability": {
+          "type": "string",
+          "description": "Emitted only by the Codex-target materializer, where it duplicates `skill`. The Claude-target materializer omits it."
+        },
+        "skill": { "type": "string" },
+        "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "compositionHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "required": ["participant"],
+      "properties": {
+        "participant": { "enum": ["codex", "claude"] }
+      },
+      "additionalProperties": false
+    },
+    "choices": {
+      "type": "object",
+      "description": "Operator choices that were required to resolve the materialization. Keys are target-namespaced: a Codex-target manifest carries only codex* keys, a Claude-target manifest only claude* keys. Every key is absent when the operator made no such choice, so an unresolved-free portable materialization serializes this as an empty object.",
+      "properties": {
+        "codexAgent": { "type": "string" },
+        "codexModel": { "type": "string" },
+        "claudeAgent": { "type": "string" },
+        "claudeModel": { "type": "string" },
+        "claudeEffort": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "resolutions": {
+      "type": "array",
+      "description": "One entry per source behavior dimension that was given an explicit target realization.",
+      "items": {
+        "type": "object",
+        "required": ["dimension", "source", "target", "authority"],
+        "properties": {
+          "dimension": { "type": "string" },
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "authority": { "type": "string" },
+          "note": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "runtimeRequirements": {
+      "type": "array",
+      "description": "Constraints the target runtime must satisfy for the materialized capability to keep its source authority envelope. Empty when the composition carried none.",
+      "items": {
+        "type": "object",
+        "required": ["dimension", "value", "status", "runtime", "configuration", "evidence", "reason"],
+        "properties": {
+          "dimension": { "type": "string" },
+          "value": { "type": "string" },
+          "status": { "type": "string" },
+          "runtime": { "type": "string" },
+          "configuration": {
+            "type": "object",
+            "description": "Runtime-specific configuration blob. Deliberately open: its keys name settings of the target harness, not of hix.",
+            "additionalProperties": true
+          },
+          "launch": {
+            "type": "object",
+            "description": "Concrete launch invocation that satisfies the requirement, when one can be expressed as a command.",
+            "required": ["command", "args"],
+            "properties": {
+              "command": { "type": "string" },
+              "args": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          },
+          "evidence": {
+            "type": "object",
+            "description": "Deliberately open. The only guaranteed key is `kind`; the remaining keys vary with the kind of evidence backing the requirement.",
+            "required": ["kind"],
+            "properties": { "kind": { "type": "string" } },
+            "additionalProperties": true
+          },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "roundTrip": {
+      "type": "object",
+      "description": "Embedded hix.round-trip/v1 payload; see schemas/hix.round-trip.v1.schema.json.",
+      "required": ["schema", "sourceCapabilityInstructions"],
+      "properties": {
+        "schema": { "const": "hix.round-trip/v1" },
+        "sourceCapabilityInstructions": { "type": "string" },
+        "sourceNativeAgentInstructions": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "files": {
+      "type": "array",
+      "description": "Every file the materialization wrote, as slash-separated paths relative to the output root.",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^[^/\\\\]" }
+    },
+    "claims": {
+      "type": "object",
+      "description": "Explicit negative claims. hix never asserts cross-harness equivalence from a materialization.",
+      "required": ["crossHarnessEquivalence"],
+      "properties": {
+        "crossHarnessEquivalence": { "const": false }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

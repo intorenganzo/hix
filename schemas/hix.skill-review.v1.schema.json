@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hix.invalid/schemas/hix.skill-review.v1.schema.json",
+  "title": "hix.skill-review/v1",
+  "description": "Per-skill review subject. Written to skills/<id>.json inside a review output directory, and embedded unchanged in the `skills` and `capabilities` arrays of a hix.review/v2 report.",
+  "type": "object",
+  "required": [
+    "schema",
+    "kind",
+    "id",
+    "participant",
+    "hash",
+    "compositionHash",
+    "members",
+    "relations",
+    "declarations",
+    "runtimeRequirements",
+    "preloadedSkills",
+    "findings",
+    "status",
+    "counts",
+    "enhancementTasks"
+  ],
+  "properties": {
+    "schema": { "const": "hix.skill-review/v1" },
+    "kind": { "const": "skill" },
+    "id": { "type": "string" },
+    "participant": { "type": "string" },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "For a skill subject this is the composition hash, not the skill artifact hash."
+    },
+    "compositionHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "members": {
+      "type": "array",
+      "description": "Native artifacts that make up the observed composition. The root skill member reports an entry count; external native members report their portable path instead.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["ref", "kind", "hash"],
+        "properties": {
+          "ref": { "type": "string" },
+          "kind": { "type": "string" },
+          "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "entries": { "type": "integer", "minimum": 0 },
+          "path": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "from", "to", "status", "evidence"],
+        "properties": {
+          "kind": { "type": "string" },
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "status": { "type": "string" },
+          "evidence": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "declarations": {
+      "type": "array",
+      "description": "Observed native execution-behavior declarations. Each keeps the native key that produced it so no universal vocabulary is implied.",
+      "items": {
+        "type": "object",
+        "required": ["nativeFamily", "nativeKey", "dimension", "value", "nativeValue", "source"],
+        "properties": {
+          "nativeFamily": { "type": "string" },
+          "nativeKey": { "type": "string" },
+          "dimension": { "type": "string" },
+          "value": { "description": "Normalized value. Deliberately untyped: native declarations carry strings, booleans, numbers, and lists." },
+          "nativeValue": { "description": "The value exactly as it appeared natively. Deliberately untyped for the same reason as `value`." },
+          "source": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "runtimeRequirements": {
+      "type": "array",
+      "description": "Runtime constraints carried by the observed composition. Same shape as hix.projection/v1 runtimeRequirements, because that is where they are read from.",
+      "items": {
+        "type": "object",
+        "required": ["dimension", "value", "status", "runtime", "configuration", "evidence", "reason"],
+        "properties": {
+          "dimension": { "type": "string" },
+          "value": { "type": "string" },
+          "status": { "type": "string" },
+          "runtime": { "type": "string" },
+          "configuration": { "type": "object", "additionalProperties": true },
+          "launch": {
+            "type": "object",
+            "required": ["command", "args"],
+            "properties": {
+              "command": { "type": "string" },
+              "args": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          },
+          "evidence": {
+            "type": "object",
+            "required": ["kind"],
+            "properties": { "kind": { "type": "string" } },
+            "additionalProperties": true
+          },
+          "reason": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "preloadedSkills": {
+      "type": "array",
+      "description": "Skills an agent member loads into the capability's execution context.",
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "source"],
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "enum": ["discovered", "missing"] },
+          "source": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["severity", "category", "id", "message", "evidence", "recommendation"],
+        "properties": {
+          "severity": { "enum": ["error", "warning", "info", "pass"] },
+          "category": {
+            "type": "string",
+            "description": "Currently one of structure, composition, execution, portability, or authority. Left open so a new review dimension does not invalidate existing reports."
+          },
+          "id": { "type": "string" },
+          "message": { "type": "string" },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "recommendation": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "status": { "enum": ["ready", "needs-review", "blocked"] },
+    "counts": {
+      "type": "object",
+      "required": ["error", "warning", "info", "pass"],
+      "properties": {
+        "error": { "type": "integer", "minimum": 0 },
+        "warning": { "type": "integer", "minimum": 0 },
+        "info": { "type": "integer", "minimum": 0 },
+        "pass": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "enhancementTasks": {
+      "type": "array",
+      "description": "Error- and warning-level findings restated as instructions for a downstream agent.",
+      "items": {
+        "type": "object",
+        "required": ["id", "instruction", "evidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "instruction": { "type": "string" },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

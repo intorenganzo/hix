@@ -3,6 +3,7 @@ import path from "node:path";
 import { assertSkillSafeForWrite, discoverSkills } from "./artifacts.js";
 import { observeComposedCapability } from "./composition.js";
 import { resolveEndpoint } from "./endpoints.js";
+import { CODEX_EFFORTS as CODEX_REASONING_EFFORTS } from "./execution-vocabulary.js";
 import { findTestedPairing } from "./support.js";
 
 const PORTABLE_FRONTMATTER_KEYS = new Set([
@@ -12,7 +13,6 @@ const PORTABLE_FRONTMATTER_KEYS = new Set([
   "compatibility",
   "metadata"
 ]);
-const CODEX_REASONING_EFFORTS = new Set(["low", "medium", "high", "xhigh", "max", "ultra"]);
 const CUSTOM_AGENT_DIMENSIONS = new Set([
   "model-selection",
   "reasoning-effort",

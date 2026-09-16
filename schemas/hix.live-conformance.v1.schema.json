@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hix.invalid/schemas/hix.live-conformance.v1.schema.json",
+  "title": "hix.live-conformance/v1",
+  "description": "Report emitted by the live conformance probe against the harnesses actually installed on the machine, and checked in under docs/conformance/ once a human adopts it as evidence. The probe records the versions it observed; it never pins them.",
+  "type": "object",
+  "required": ["schema", "observedAt", "versions", "pairing", "checks", "compositionHash", "manifestHashes", "claims"],
+  "properties": {
+    "schema": { "const": "hix.live-conformance/v1" },
+    "observedAt": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$"
+    },
+    "versions": {
+      "type": "object",
+      "description": "Exact versions parsed from the installed harness binaries.",
+      "required": ["claude", "codex"],
+      "properties": {
+        "claude": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$" },
+        "codex": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+)*$" }
+      },
+      "additionalProperties": false
+    },
+    "pairing": {
+      "type": "string",
+      "description": "Stable pairing id matching an entry in harnesses/support.json testedPairings once the report is adopted."
+    },
+    "command": {
+      "type": "string",
+      "description": "Recorded by hand on older reports; the probe itself does not emit it."
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "compositionHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "manifestHashes": {
+      "type": "object",
+      "required": ["codex", "claude"],
+      "properties": {
+        "codex": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "claude": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "claims": {
+      "type": "object",
+      "required": ["crossHarnessEquivalence", "runtimeExecutionTested"],
+      "properties": {
+        "crossHarnessEquivalence": { "const": false },
+        "runtimeExecutionTested": { "const": false }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

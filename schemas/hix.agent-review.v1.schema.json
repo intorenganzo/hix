@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hix.invalid/schemas/hix.agent-review.v1.schema.json",
+  "title": "hix.agent-review/v1",
+  "description": "Per-agent review subject for a native agent discovered at an endpoint. Written to agents/<id>.json inside a review output directory, and embedded unchanged in the `agents` and `capabilities` arrays of a hix.review/v2 report.",
+  "type": "object",
+  "required": [
+    "schema",
+    "kind",
+    "id",
+    "participant",
+    "hash",
+    "path",
+    "tools",
+    "preloadedSkills",
+    "findings",
+    "status",
+    "counts",
+    "enhancementTasks"
+  ],
+  "properties": {
+    "schema": { "const": "hix.agent-review/v1" },
+    "kind": { "const": "agent" },
+    "id": { "type": "string" },
+    "participant": { "type": "string" },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Hash of the native agent file bytes."
+    },
+    "path": {
+      "type": "string",
+      "description": "Portable path of the native agent file relative to the environment root."
+    },
+    "model": { "description": "Native model selection, present only when the agent declares one. Untyped because the value is whatever the native configuration carried." },
+    "effort": { "description": "Native reasoning effort, present only when the agent declares one. Untyped for the same reason as `model`." },
+    "permissionMode": { "description": "Claude-only. Present only when the agent declares one." },
+    "sandboxMode": { "description": "Codex-only. Present only when the agent declares one." },
+    "tools": {
+      "type": "array",
+      "description": "Claude tool allowlist. Always present; empty for agents and participants that declare none.",
+      "items": { "type": "string" }
+    },
+    "preloadedSkills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "source"],
+        "properties": {
+          "name": { "type": "string" },
+          "status": { "enum": ["discovered", "missing"] },
+          "source": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["severity", "category", "id", "message", "evidence", "recommendation"],
+        "properties": {
+          "severity": { "enum": ["error", "warning", "info", "pass"] },
+          "category": {
+            "type": "string",
+            "description": "Currently one of structure, composition, execution, portability, or authority. Left open so a new review dimension does not invalidate existing reports."
+          },
+          "id": { "type": "string" },
+          "message": { "type": "string" },
+          "evidence": { "type": "array", "items": { "type": "string" } },
+          "recommendation": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "status": { "enum": ["ready", "needs-review", "blocked"] },
+    "counts": {
+      "type": "object",
+      "required": ["error", "warning", "info", "pass"],
+      "properties": {
+        "error": { "type": "integer", "minimum": 0 },
+        "warning": { "type": "integer", "minimum": 0 },
+        "info": { "type": "integer", "minimum": 0 },
+        "pass": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "enhancementTasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "instruction", "evidence"],
+        "properties": {
+          "id": { "type": "string" },
+          "instruction": { "type": "string" },
+          "evidence": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

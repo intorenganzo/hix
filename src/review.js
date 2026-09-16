@@ -3,10 +3,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { analyzeBehaviorTransfer } from "./behavior.js";
 import { inspectCompositions, inspectEndpoint } from "./core.js";
+import { KNOWN_EFFORTS } from "./execution-vocabulary.js";
 import { markdownBody, parseToml, stringList } from "./formats.js";
 import { inspectSkillFrontmatter } from "./frontmatter.js";
-
-const KNOWN_EFFORTS = new Set(["low", "medium", "high", "xhigh", "max", "ultra"]);
 
 export async function planReview(spec, selection = {}, options = {}) {
   const inspection = await inspectEndpoint(spec, options);
@@ -103,6 +102,7 @@ function reviewSkill(composition, bySkill, endpoint) {
       findings.push(finding(mapping.status === "unmapped" ? "warning" : "info", "portability", `portability-${mapping.dimension}-${mapping.status}`, `${mapping.dimension} is ${mapping.status} when targeting ${target}.`, [mapping.source], mapping.note || "Review the target-native realization before materializing."));
     }
   }
+  findings.push(...portabilityResidueFindings(composition.artifact));
   if (!findings.some((item) => item.severity === "error")) findings.push(finding("pass", "structure", "composition-observable", "No structural blockers were found in the observed skill composition.", [`compositionHash:${composition.compositionHash}`], "Review warnings before use or movement."));
 
   return finish({ schema: "hix.skill-review/v1", kind: "skill", id: composition.id, participant: endpoint.participant, hash: composition.compositionHash, compositionHash: composition.compositionHash, members: composition.members, relations: composition.relations, declarations: composition.declarations, runtimeRequirements: composition.runtimeRequirements, preloadedSkills, findings });
@@ -325,6 +325,112 @@ async function prepareOutput(root, replace) {
     throw new Error(`${root} has an unrecognized review marker. Refusing replacement.`);
   }
   await fs.rm(root, { recursive: true, force: true });
+}
+
+const HARNESS_HOME_PATHS = ["~/.claude", "~/.codex", "~/.agents"];
+const URL_SCHEMES = new Set(["http", "https", "mailto", "file", "ftp", "ssh", "git", "data"]);
+const SCRIPT_EXTENSIONS = new Set([".sh", ".bash", ".zsh", ".py", ".js", ".mjs", ".cjs", ".rb", ".pl"]);
+const NETWORK_ACCESS_PATTERNS = [/\bcurl\s/, /\bwget\s/, /\bfetch\s*\(/, /\bhttps?\.request\s*\(/, /\bXMLHttpRequest\b/, /\brequests\.(get|post|put|delete|request)\s*\(/, /\burllib\.request\b/];
+const EVIDENCE_LIMIT = 10;
+
+function portabilityResidueFindings(artifact) {
+  const findings = [];
+  const description = artifact.frontmatter?.description ?? "";
+  if (/[<>]/.test(description)) {
+    findings.push(finding(
+      "warning",
+      "portability",
+      "claude-description-angle-brackets",
+      "The skill description contains angle brackets. This conforms to the Agent Skills specification, but some harness packaging validation rejects < or > in descriptions.",
+      ["SKILL.md:description"],
+      "Rephrase the description without angle brackets, or accept reduced portability toward harnesses that reject them."
+    ));
+  }
+
+  const markdownEntries = textEntries(artifact, (entry) => entry.path.endsWith(".md"));
+  const homePathHits = [];
+  const namespacedHits = [];
+  for (const { entry, text } of markdownEntries) {
+    for (const prefix of HARNESS_HOME_PATHS) {
+      if (text.includes(prefix)) homePathHits.push(`${entry.path}:${prefix}`);
+    }
+    for (const token of namespacedInvocationTokens(text)) namespacedHits.push(`${entry.path}:${token}`);
+  }
+  if (homePathHits.length) {
+    findings.push(finding(
+      "warning",
+      "portability",
+      "hardcoded-harness-home-path",
+      "Skill content hardcodes a harness home path. The path may not exist or may mean something different on another harness.",
+      homePathHits.slice(0, EVIDENCE_LIMIT),
+      "Describe the location in harness-neutral terms, or scope the instruction to the harness it belongs to."
+    ));
+  }
+  if (namespacedHits.length) {
+    findings.push(finding(
+      "info",
+      "portability",
+      "harness-namespaced-invocation",
+      "Skill content references namespaced invocation tokens that may only resolve inside one harness or plugin system.",
+      [...new Set(namespacedHits)].slice(0, EVIDENCE_LIMIT),
+      "Verify each namespaced reference resolves at every intended destination, or describe the capability without the namespace."
+    ));
+  }
+
+  const scripts = scriptEntries(artifact);
+  if (scripts.length && typeof artifact.frontmatter?.values?.compatibility !== "string") {
+    findings.push(finding(
+      "warning",
+      "portability",
+      "undeclared-script-runtime",
+      "The skill ships executable scripts but declares no compatibility requirements, so a structural review cannot verify the runtime exists at a destination.",
+      scripts.map((item) => item.entry.path).slice(0, EVIDENCE_LIMIT),
+      "Declare the required interpreters and platform assumptions in the compatibility frontmatter field."
+    ));
+  }
+  const networkHits = [];
+  for (const { entry, text } of scripts) {
+    for (const pattern of NETWORK_ACCESS_PATTERNS) {
+      if (pattern.test(text)) { networkHits.push(entry.path); break; }
+    }
+  }
+  if (networkHits.length) {
+    findings.push(finding(
+      "info",
+      "portability",
+      "outbound-network-reference",
+      "Skill scripts appear to perform outbound network access. This can fail offline and may have privacy implications at a destination.",
+      networkHits.slice(0, EVIDENCE_LIMIT),
+      "Confirm the network access is intended, documented, and acceptable wherever the skill will run."
+    ));
+  }
+  return findings;
+}
+
+function textEntries(artifact, predicate) {
+  const result = [];
+  for (const entry of artifact.entries ?? []) {
+    if (entry.kind !== "file" || !predicate(entry)) continue;
+    result.push({ entry, text: entry.content.toString("utf8") });
+  }
+  return result;
+}
+
+function scriptEntries(artifact) {
+  return textEntries(artifact, (entry) => {
+    if (entry.path === "SKILL.md") return false;
+    if (SCRIPT_EXTENSIONS.has(path.extname(entry.path))) return true;
+    return entry.content.subarray(0, 2).toString("utf8") === "#!";
+  });
+}
+
+function namespacedInvocationTokens(text) {
+  const tokens = new Set();
+  for (const match of text.matchAll(/`([a-z][a-z0-9-]*):([a-z][a-z0-9-]*)`/g)) {
+    if (URL_SCHEMES.has(match[1])) continue;
+    tokens.add(`${match[1]}:${match[2]}`);
+  }
+  return tokens;
 }
 
 function finding(severity, category, id, message, evidence = [], recommendation = "Review this finding.") { return { severity, category, id, message, evidence: evidence.filter(Boolean), recommendation }; }

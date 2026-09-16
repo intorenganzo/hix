@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hix.invalid/schemas/hix.round-trip.v1.schema.json",
+  "title": "hix.round-trip/v1",
+  "description": "Instruction payload carried inside a hix.projection/v1 manifest so a materialized capability can be observed back into its source-side instructions without re-parsing target-native files. Emitted by both the Codex-target and Claude-target materializers.",
+  "type": "object",
+  "required": ["schema", "sourceCapabilityInstructions"],
+  "properties": {
+    "schema": { "const": "hix.round-trip/v1" },
+    "sourceCapabilityInstructions": {
+      "type": "string",
+      "description": "Trimmed markdown body of the source SKILL.md."
+    },
+    "sourceNativeAgentInstructions": {
+      "type": "string",
+      "description": "Trimmed instructions of the source-native agent member. Omitted entirely when the source composition had no agent member, or when that member carried no instructions."
+    }
+  },
+  "additionalProperties": false
+}
