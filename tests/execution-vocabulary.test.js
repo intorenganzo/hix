@@ -85,6 +85,37 @@ test("Claude materialization treats ultra as unresolved until the operator choos
   assert.equal(resolved.targetEffort, "high");
 });
 
+test("ultra declared by a Codex-native agent is also unresolved for the Claude target", async () => {
+  const home = await tempHome();
+  const bundle = path.join(home, "bundle");
+  const skills = path.join(bundle, ".agents", "skills");
+  await writeSkill(skills, "review", `---\nname: review\ndescription: Review.\nagent: reviewer\n---\n\nReview carefully.\n`);
+  await fs.mkdir(path.join(bundle, ".codex", "agents"), { recursive: true });
+  await fs.writeFile(
+    path.join(bundle, ".codex", "agents", "reviewer.toml"),
+    `name = "reviewer"\ndescription = "Review agent"\nmodel_reasoning_effort = "ultra"\ndeveloper_instructions = "Review carefully."\n`,
+    "utf8"
+  );
+
+  const endpointRoots = new Map([["codex:bundle", skills]]);
+  const blocked = await planMaterialization(
+    "codex:bundle",
+    "claude",
+    { names: ["review"] },
+    { home, out: path.join(home, "claude-blocked"), claudeAgent: "reviewer", endpointRoots }
+  );
+  assert(blocked.unresolved.some((item) => item.dimension === "reasoning-effort" && item.reason.includes("--claude-effort")));
+
+  const resolved = await planMaterialization(
+    "codex:bundle",
+    "claude",
+    { names: ["review"] },
+    { home, out: path.join(home, "claude-resolved"), claudeAgent: "reviewer", claudeEffort: "high", endpointRoots }
+  );
+  assert.equal(resolved.unresolved.length, 0);
+  assert.equal(resolved.targetEffort, "high");
+});
+
 test("review warns on a truly unknown effort value and accepts known ones", async () => {
   const home = await tempHome();
   const skills = path.join(home, ".claude", "skills");
